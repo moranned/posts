@@ -80,7 +80,7 @@ def post_update(id):
       return Response(json.dumps(data), 422, mimetype="application/json")
     
     post = session.query(models.Post).get(id)
-    session.add(post)
+    session.merge(post)
     session.commit()
     
     data = json.dumps(post.as_dictionary())

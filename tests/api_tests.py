@@ -61,21 +61,21 @@ class TestAPI(unittest.TestCase):
       session.add(post)
       session.commit()
       
-      postid = post.id
+      #postid = post.id
       
-      #Update POST entry to DB via SQL Alchemy
-      response = self.client.get("/api/posts/{}".format(postid))
+      #Test POST entry via endpoint
+      response = self.client.get("/api/posts/{}".format(post.id))
       
       #Test response codes and content types
       self.assertEqual(response.status_code, 200)
       self.assertEqual(response.mimetype, "application/json")
-      post = json.loads(response.data)
-      self.assertEqual(post["title"], "Example Post")
-      self.assertEqual(post["body"], "Just a test")
+      getpost = json.loads(response.data)
+      self.assertEqual(getpost["title"], "Example Post")
+      self.assertEqual(getpost["body"], "Just a test")
       
       #Get the existing post object from the model
       posts = session.query(models.Post)
-      updatePost = posts.filter(models.Post.id == postid).first()
+      updatePost = posts.filter(models.Post.id == post.id).first()
       
       #Update the existing Post object and store in DB
       updatePost.title = "Updated Example Post"
@@ -84,7 +84,7 @@ class TestAPI(unittest.TestCase):
       session.commit()
       
       #Get and Test updated POST via enpoint      
-      putresponse = self.client.put("/api/posts/{}".format(postid))
+      putresponse = self.client.put("/api/posts/{}".format(post.id))
       
       self.assertEqual(putresponse.status_code, 200)
       self.assertEqual(putresponse.mimetype, "application/json")
