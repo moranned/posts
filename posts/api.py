@@ -1,6 +1,6 @@
 import json
 
-from flask import request, Response, url_for
+from flask import request, Response, url_for, Flask
 from jsonschema import validate, ValidationError
 
 import models

@@ -73,9 +73,24 @@ class TestAPI(unittest.TestCase):
       self.assertEqual(post["title"], "Example Post")
       self.assertEqual(post["body"], "Just a test")
       
-      #Get and Test updated POST via enpoint
-      updatedPost = models.Post(id=postid, title="Updated Example Post", body="Updated Example Body")
-      response = self.client.put("/api/posts/{}".format(postid))
+      #Get the existing post object from the model
+      posts = session.query(models.Post)
+      updatePost = posts.filter(models.Post.id == postid).first()
+      
+      #Update the existing Post object and store in DB
+      updatePost.title = "Updated Example Post"
+      updatePost.body = "Updated Body test"
+      session.merge(updatePost)
+      session.commit()
+      
+      #Get and Test updated POST via enpoint      
+      putresponse = self.client.put("/api/posts/{}".format(postid))
+      
+      self.assertEqual(putresponse.status_code, 200)
+      self.assertEqual(putresponse.mimetype, "application/json")
+      newpost = json.loads(putresponse.data)
+      self.assertEqual(newpost["title"], "Updated Example Post")
+      self.assertEqual(newpost["body"], "Updated Body test")
       
     def testDeletePost(self):
       """ Getting a single post from a populated database """
