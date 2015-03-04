@@ -53,6 +53,30 @@ class TestAPI(unittest.TestCase):
       self.assertEqual(post["title"], "Example Post B")
       self.assertEqual(post["body"], "Still a test")
 
+    def testPut(self):
+      """ Updating a single post from a populated database """
+      
+      #Add a POST to db via SQL Alchemy
+      post = models.Post(title="Example Post", body="Just a test")
+      session.add(post)
+      session.commit()
+      
+      postid = post.id
+      
+      #Update POST entry to DB via SQL Alchemy
+      response = self.client.get("/api/posts/{}".format(postid))
+      
+      #Test response codes and content types
+      self.assertEqual(response.status_code, 200)
+      self.assertEqual(response.mimetype, "application/json")
+      post = json.loads(response.data)
+      self.assertEqual(post["title"], "Example Post")
+      self.assertEqual(post["body"], "Just a test")
+      
+      #Get and Test updated POST via enpoint
+      updatedPost = models.Post(id=postid, title="Updated Example Post", body="Updated Example Body")
+      response = self.client.put("/api/posts/{}".format(postid))
+      
     def testDeletePost(self):
       """ Getting a single post from a populated database """
       postA = models.Post(title="Example Post A", body="Just a test")
@@ -108,6 +132,85 @@ class TestAPI(unittest.TestCase):
         post = posts[0]
         self.assertEqual(post["title"], "Post with bells and whistles")
         self.assertEqual(post["body"], "Another test with bells and whistles")    
+
+    def testPostPost(self):
+        """ Posting a new post """
+        data = {
+            "title": "Example Post",
+            "body": "Just a test"
+        }
+
+        response = self.client.post("/api/posts",
+            data=json.dumps(data),
+            content_type="application/json",
+            headers=[("Accept", "application/json")]
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.mimetype, "application/json")
+        self.assertEqual(urlparse(response.headers.get("Location")).path,
+                         "/api/posts/1")
+
+        data = json.loads(response.data)
+        self.assertEqual(data["id"], 1)
+        self.assertEqual(data["title"], "Example Post")
+        self.assertEqual(data["body"], "Just a test")
+
+        posts = session.query(models.Post).all()
+        self.assertEqual(len(posts), 1)
+
+        post = posts[0]
+        self.assertEqual(post.title, "Example Post")
+        self.assertEqual(post.body, "Just a test")
+
+    def testUnsupportedMimetype(self):
+        data = "<xml></xml>"
+        response = self.client.post("/api/posts",
+            data=json.dumps(data),
+            content_type="application/xml",
+            headers=[("Accept", "application/json")]
+        )
+
+        self.assertEqual(response.status_code, 415)
+        self.assertEqual(response.mimetype, "application/json")
+
+        data = json.loads(response.data)
+        self.assertEqual(data["message"], "Request must contain application/json data")
+        
+    def testInvalidData(self):
+        """ Posting a post with an invalid body """
+        data = {
+            "title": "Example Post",
+            "body": 32
+        }
+
+        response = self.client.post("/api/posts",
+            data=json.dumps(data),
+            content_type="application/json",
+            headers=[("Accept", "application/json")]
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+        data = json.loads(response.data)
+        self.assertEqual(data["message"], "32 is not of type 'string'")
+
+    def testMissingData(self):
+        """ Posting a post with a missing body """
+        data = {
+            "title": "Example Post",
+        }
+
+        response = self.client.post("/api/posts",
+            data=json.dumps(data),
+            content_type="application/json",
+            headers=[("Accept", "application/json")]
+        )
+
+        self.assertEqual(response.status_code, 422)
+
+        data = json.loads(response.data)
+        self.assertEqual(data["message"], "'body' is a required property")
         
 if __name__ == "__main__":
     unittest.main()
